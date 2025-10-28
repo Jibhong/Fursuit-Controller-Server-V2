@@ -82,7 +82,7 @@ if __name__ == "__main__":
 
     # Adjust coordinates/resolutions for your monitors
     p_left = Process(target=run_display,
-                     args=(child1, 0, 0, 1920, 1080, "black", "red", "LEFT"))
+                     args=(child1, 0, 0, 1920, 1080, "blue", "red", "LEFT"))
     p_right = Process(target=run_display,
                       args=(child2, 1920, 0, 1280, 720, "navy", "yellow", "RIGHT"))
 
@@ -102,7 +102,7 @@ if __name__ == "__main__":
 
     parent1.send("reverse") 
     parent2.send("reverse") 
-    
+
     time.sleep(1.2)
 
     # Quit both
