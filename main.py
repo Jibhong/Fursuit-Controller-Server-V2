@@ -6,8 +6,13 @@ import subprocess
 import pygame
 from multiprocessing import Process, Pipe, set_start_method
 
+def blink(screen: pygame.Surface, factor: float = 0.5):
+    w = screen.get_width()
+    h = screen.get_height()
+    pygame.draw.rect(screen, "black", pygame.Rect(0,0,w,h*factor))
+
 # Child process: ensure DISPLAY is set, create its own pygame window and listen for commands.
-def run_display(conn, x, y, w, h, color_bg, color_rect, name="display"):
+def run_display(conn, x, y, w, h, name="display"):
     # Defensive: ensure the child has the correct X display
     os.environ.setdefault("DISPLAY", ":0")
 
@@ -26,37 +31,52 @@ def run_display(conn, x, y, w, h, color_bg, color_rect, name="display"):
         print(f"[{name}] failed to move window: {e}", file=sys.stderr)
 
     clock = pygame.time.Clock()
-    rect_x = 0
-    rect_y = h // 2 - 25
-    rect_w, rect_h = 50, 50
-    speed = 6
     running = True
 
-    while running:
-        # read commands from parent (non-blocking)
-        if conn.poll():
-            msg = conn.recv()
-            if msg == "quit":
-                running = False
-            elif msg == "reverse":
-                speed = -speed
-            elif isinstance(msg, tuple) and msg[0] == "bg":
-                color_bg = msg[1]
-            elif isinstance(msg, tuple) and msg[0] == "rect":
-                color_rect = msg[1]
+    # Colors
+    color_bg = (255, 255, 255)
+    color_highlight = (255, 255, 255)
+    color_eye = (0, 0, 0)
 
+    # Eye parameters
+    eye_size=(h, h)
+    eye_radius = min(eye_size)//2 - 10
+    pupil_radius = eye_radius // 3
+    pupil_pos_x = eye_size[0]//2
+    pupil_pos_y = eye_size[1]//2
+
+    # Blinking
+    blinkTime = 1.0
+    blinkLeft = 0.0
+
+    while running:
+        deltaTime = clock.tick(60) / 1000  # convert milliseconds to seconds
+        blinkLeft -= deltaTime
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
 
+        # Commands
+        if conn.poll():
+            msg = conn.recv()
+            if msg == "quit":
+                running = False
+            elif msg == "blink":
+                blinkLeft = blinkTime
+            elif isinstance(msg, tuple) and msg[0] == "bg":
+                color_bg = msg[1]
+            elif isinstance(msg, tuple) and msg[0] == "rect":
+                color_eye = msg[1]
+
+
         screen.fill(pygame.Color(color_bg))
-        pygame.draw.rect(screen, pygame.Color(color_rect), (rect_x, rect_y, rect_w, rect_h))
-        rect_x += speed
-        if rect_x + rect_w > w or rect_x < 0:
-            speed = -speed
+        pygame.draw.circle(screen, color_eye, (eye_size[0]//2, eye_size[1]//2), eye_radius)  # sclera
+        pygame.draw.circle(screen, color_highlight, (pupil_pos_x, pupil_pos_y), pupil_radius)      # pupil
+
+        if (blinkLeft > 0):
+            blink(screen, blinkLeft/blinkTime)
 
         pygame.display.update()
-        clock.tick(60)
 
     pygame.quit()
     conn.close()
@@ -82,28 +102,20 @@ if __name__ == "__main__":
 
     # Adjust coordinates/resolutions for your monitors
     p_left = Process(target=run_display,
-                     args=(child1, 0, 0, 1920, 1080, "blue", "red", "LEFT"))
+                     args=(child1, 0, 0, 1920, 1080, "LEFT"))
     p_right = Process(target=run_display,
-                      args=(child2, 1920, 0, 1280, 720, "navy", "yellow", "RIGHT"))
+                      args=(child2, 1920, 0, 1280, 720, "RIGHT"))
 
     p_left.start()
     p_right.start()
 
+    time.sleep(1)
+
     # Give them a moment to create windows
-    time.sleep(1.0)
+    parent1.send("blink")
+    parent2.send("blink")
 
-    # Example control sequence
-    parent1.send("reverse")               # reverse left rect
-    time.sleep(0.8)
-    parent2.send(("bg", "darkgreen"))     # change right background
-    time.sleep(0.8)
-    parent1.send(("rect", "orange"))      # change left rect color
-    time.sleep(1.2)
-
-    parent1.send("reverse") 
-    parent2.send("reverse") 
-
-    time.sleep(1.2)
+    time.sleep(3)
 
     # Quit both
     parent1.send("quit")
