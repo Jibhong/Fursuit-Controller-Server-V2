@@ -14,7 +14,7 @@ def run_display(conn, x, y, w, h, color_bg, color_rect, name="display"):
     pygame.init()
     pygame.display.init()
     screen = pygame.display.set_mode((w, h), pygame.NOFRAME)
-    pygame.display.set_caption(f"{name} {color_bg}")
+    pygame.display.set_caption(f"{name}")
 
     # Move the window to (x, y) using xdotool (requires xdotool installed)
     try:
@@ -68,6 +68,9 @@ if __name__ == "__main__":
     except RuntimeError:
         # start method already set; ignore
         pass
+    except ValueError:
+        # error@window
+        pass
 
     print("Python:", sys.version.splitlines()[0])
     print("Pygame:", pygame.version.vernum)
@@ -95,6 +98,11 @@ if __name__ == "__main__":
     parent2.send(("bg", "darkgreen"))     # change right background
     time.sleep(0.8)
     parent1.send(("rect", "orange"))      # change left rect color
+    time.sleep(1.2)
+
+    parent1.send("reverse") 
+    parent2.send("reverse") 
+    
     time.sleep(1.2)
 
     # Quit both
