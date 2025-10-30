@@ -5,11 +5,20 @@ import time
 import subprocess
 import pygame
 from multiprocessing import Process, Pipe, set_start_method
+import asyncio
+import random
+import threading
+
+
+def remap(f1, f2, value):
+    value = max(0.0, min(1.0, value))  # clamp to [0,1]
+    return f1 + (f2 - f1) * value
 
 def blink(screen: pygame.Surface, factor: float = 0.5):
     w = screen.get_width()
     h = screen.get_height()
-    pygame.draw.rect(screen, "black", pygame.Rect(0,0,w,h*factor))
+    
+    pygame.draw.ellipse(screen, "black", pygame.Rect(-w/2,remap(-h*1.2, -h*2.4, factor),w*2,h*2.4))
 
 # Child process: ensure DISPLAY is set, create its own pygame window and listen for commands.
 def run_display(conn, x, y, w, h, name="display"):
@@ -41,21 +50,28 @@ def run_display(conn, x, y, w, h, name="display"):
     # Eye parameters
     eye_size=(h, h)
     eye_radius = min(eye_size)//2 - 10
-    pupil_radius = eye_radius // 3
+    pupil_radius = eye_radius // 1.2
     pupil_pos_x = eye_size[0]//2
     pupil_pos_y = eye_size[1]//2
 
     # Blinking
-    blinkTime = 1.0
-    blinkLeft = 0.0
+    blinkTime = 0.2
+    blinkLeft = -blinkTime
 
     while running:
+        # Input
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LCTRL] or keys[pygame.K_RCTRL]:
+            if keys[pygame.K_c]:
+                running = False
+
+        # Logic
         deltaTime = clock.tick(60) / 1000  # convert milliseconds to seconds
         blinkLeft -= deltaTime
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-
+    
         # Commands
         if conn.poll():
             msg = conn.recv()
@@ -73,13 +89,20 @@ def run_display(conn, x, y, w, h, name="display"):
         pygame.draw.circle(screen, color_eye, (eye_size[0]//2, eye_size[1]//2), eye_radius)  # sclera
         pygame.draw.circle(screen, color_highlight, (pupil_pos_x, pupil_pos_y), pupil_radius)      # pupil
 
-        if (blinkLeft > 0):
-            blink(screen, blinkLeft/blinkTime)
+        if (blinkLeft > -blinkTime):
+            blink(screen, abs(blinkLeft)/blinkTime)
 
         pygame.display.update()
 
     pygame.quit()
     conn.close()
+
+
+def Blink():
+    while True:
+        parent1.send("blink")
+        parent2.send("blink")
+        time.sleep(random.uniform(2,3))
 
 if __name__ == "__main__":
     # Force 'fork' start method on Linux so child inherits X connection
@@ -101,10 +124,9 @@ if __name__ == "__main__":
     parent2, child2 = Pipe()
 
     # Adjust coordinates/resolutions for your monitors
-    p_left = Process(target=run_display,
-                     args=(child1, 0, 0, 1920, 1080, "LEFT"))
-    p_right = Process(target=run_display,
-                      args=(child2, 1920, 0, 1280, 720, "RIGHT"))
+    p_left = Process(target=run_display, args=(child1, 0, 0, 1920, 1080, "LEFT"))
+    # p_left = Process(target=print, args=("a"))
+    p_right = Process(target=run_display, args=(child2, 1920, 0, 800, 480, "RIGHT"))
 
     p_left.start()
     p_right.start()
@@ -114,13 +136,17 @@ if __name__ == "__main__":
     # Give them a moment to create windows
     parent1.send("blink")
     parent2.send("blink")
-
-    time.sleep(3)
-
-    # Quit both
-    parent1.send("quit")
-    parent2.send("quit")
-
+    # Blink()
+    threading.Thread(target=Blink, daemon=True).start()
+    while True:
+        if not p_left.is_alive():
+            print("Left process died, terminating right...")
+            parent2.send("quit")
+            break
+        if not p_right.is_alive():
+            print("Right process died, terminating left...")
+            parent1.send("quit")
+            break
     p_left.join()
     p_right.join()
     print("Done.")
