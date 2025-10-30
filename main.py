@@ -126,7 +126,7 @@ if __name__ == "__main__":
     # Adjust coordinates/resolutions for your monitors
     p_left = Process(target=run_display, args=(child1, 0, 0, 1920, 1080, "LEFT"))
     # p_left = Process(target=print, args=("a"))
-    p_right = Process(target=run_display, args=(child2, 1920, 0, 800, 480, "RIGHT"))
+    p_right = Process(target=run_display, args=(child2, 1920, 0, 1280, 720, "RIGHT"))
 
     p_left.start()
     p_right.start()
