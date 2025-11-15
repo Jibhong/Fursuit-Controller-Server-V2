@@ -66,7 +66,7 @@ def run_display(conn, x, y, w, h, name="display"):
                 running = False
 
         # Logic
-        deltaTime = clock.tick(60) / 1000  # convert milliseconds to seconds
+        deltaTime = clock.tick(30) / 1000  # convert milliseconds to seconds
         blinkLeft -= deltaTime
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -124,9 +124,9 @@ if __name__ == "__main__":
     parent2, child2 = Pipe()
 
     # Adjust coordinates/resolutions for your monitors
-    p_left = Process(target=run_display, args=(child1, 0, 0, 1920, 1080, "LEFT"))
+    p_left = Process(target=run_display, args=(child1, 0, 0, 800, 480, "LEFT"))
     # p_left = Process(target=print, args=("a"))
-    p_right = Process(target=run_display, args=(child2, 1920, 0, 1280, 720, "RIGHT"))
+    p_right = Process(target=run_display, args=(child2, 800, 0, 800, 480, "RIGHT"))
 
     p_left.start()
     p_right.start()
