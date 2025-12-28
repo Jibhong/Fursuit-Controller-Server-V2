@@ -89,7 +89,7 @@ def run_display(conn, x, y, w, h, name="display"):
         # pygame.draw.circle(screen, color_eye, (pupil_pos_x, pupil_pos_y), eye_radius)  # sclera
         # pygame.draw.circle(screen, color_highlight, (pupil_pos_x, pupil_pos_y), pupil_radius)      # pupil
 
-        iris_img = pygame.image.load("iris.png").convert_alpha()
+        iris_img = pygame.image.load("./iris.png").convert_alpha()
         iris_size = eye_radius * 2
         iris_img = pygame.transform.smoothscale(iris_img, (iris_size, iris_size))
         iris_rect = iris_img.get_rect(center=(pupil_pos_x, pupil_pos_y))
