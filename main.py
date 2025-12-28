@@ -18,7 +18,7 @@ def blink(screen: pygame.Surface, factor: float = 0.5):
     w = screen.get_width()
     h = screen.get_height()
     
-    pygame.draw.ellipse(screen, "black", pygame.Rect(-w/2,remap(-h*1.2, -h*2.4, factor),w*2,h*2.4))
+    pygame.draw.rect(screen, "black", pygame.Rect(-w/2,remap(-h*1.2, -h*2.4, factor),w*2,h*2.4))
 
 # Child process: ensure DISPLAY is set, create its own pygame window and listen for commands.
 def run_display(conn, x, y, w, h, name="display"):
@@ -49,10 +49,10 @@ def run_display(conn, x, y, w, h, name="display"):
 
     # Eye parameters
     eye_size=(h, h)
-    eye_radius = min(eye_size)//2 - 10
-    pupil_radius = eye_radius // 1.2
-    pupil_pos_x = eye_size[0]//2
-    pupil_pos_y = eye_size[1]//2
+    eye_radius = min(eye_size)/2 - 10
+    pupil_radius = eye_radius / 1.2
+    pupil_pos_x = eye_size[0]/2 + 100 # offset
+    pupil_pos_y = eye_size[1]/2
 
     # Blinking
     blinkTime = 0.2
@@ -66,7 +66,7 @@ def run_display(conn, x, y, w, h, name="display"):
                 running = False
 
         # Logic
-        deltaTime = clock.tick(30) / 1000  # convert milliseconds to seconds
+        deltaTime = clock.tick(60) / 1000  # convert milliseconds to seconds
         blinkLeft -= deltaTime
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -86,8 +86,15 @@ def run_display(conn, x, y, w, h, name="display"):
 
 
         screen.fill(pygame.Color(color_bg))
-        pygame.draw.circle(screen, color_eye, (eye_size[0]//2, eye_size[1]//2), eye_radius)  # sclera
-        pygame.draw.circle(screen, color_highlight, (pupil_pos_x, pupil_pos_y), pupil_radius)      # pupil
+        # pygame.draw.circle(screen, color_eye, (pupil_pos_x, pupil_pos_y), eye_radius)  # sclera
+        # pygame.draw.circle(screen, color_highlight, (pupil_pos_x, pupil_pos_y), pupil_radius)      # pupil
+
+        iris_img = pygame.image.load("iris.png").convert_alpha()
+        iris_size = eye_radius * 2
+        iris_img = pygame.transform.smoothscale(iris_img, (iris_size, iris_size))
+        iris_rect = iris_img.get_rect(center=(pupil_pos_x, pupil_pos_y))
+        screen.blit(iris_img, iris_rect)
+
 
         if (blinkLeft > -blinkTime):
             blink(screen, abs(blinkLeft)/blinkTime)
