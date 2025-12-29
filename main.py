@@ -28,7 +28,7 @@ def run_display(conn, x, y, w, h, name="display"):
 
     pygame.init()
     pygame.display.init()
-    screen = pygame.display.set_mode((w, h), pygame.NOFRAME)
+    screen = pygame.display.set_mode((w, h), pygame.NOFRAME | pygame.DOUBLEBUF | pygame.HWSURFACE)
     pygame.display.set_caption(f"{name}")
 
     # Move the window to (x, y) using xdotool (requires xdotool installed)
