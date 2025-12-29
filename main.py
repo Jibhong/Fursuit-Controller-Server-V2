@@ -143,9 +143,9 @@ if __name__ == "__main__":
     parent2, child2 = Pipe()
 
     # Adjust coordinates/resolutions for your monitors
-    p_left = Process(target=run_display, args=(child1, 0, 0, 840, 480, "RIGHT"))
+    p_left = Process(target=run_display, args=(child1, 0, 0, 800, 480, "RIGHT"))
     # p_left = Process(target=print, args=("a"))
-    p_right = Process(target=run_display, args=(child2, 840, 0, 800, 480, "LEFT"))
+    p_right = Process(target=run_display, args=(child2, 800, 0, 800, 480, "LEFT"))
 
     p_left.start()
     p_right.start()
