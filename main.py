@@ -65,6 +65,8 @@ def run_display(conn, x, y, w, h, name="display"):
     iris_img = pygame.transform.smoothscale(iris_img, (iris_size, iris_size))
     iris_rect = iris_img.get_rect(center=(pupil_pos_x, pupil_pos_y))
 
+    iris_img_flipped = pygame.transform.flip(iris_img, True, False)
+
     while running:
         # Input
         keys = pygame.key.get_pressed()
@@ -96,8 +98,10 @@ def run_display(conn, x, y, w, h, name="display"):
         # pygame.draw.circle(screen, color_eye, (pupil_pos_x, pupil_pos_y), eye_radius)  # sclera
         # pygame.draw.circle(screen, color_highlight, (pupil_pos_x, pupil_pos_y), pupil_radius)      # pupil
 
-
-        screen.blit(iris_img, iris_rect)
+        if (name == "RIGHT"):
+            screen.blit(iris_img_flipped, iris_rect)
+        else:
+            screen.blit(iris_img, iris_rect)
 
 
         if (blinkLeft > -blinkTime):
