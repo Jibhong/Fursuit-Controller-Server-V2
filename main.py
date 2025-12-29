@@ -23,23 +23,20 @@ def blink(screen: pygame.Surface, factor: float = 0.5):
 
 # Child process: ensure DISPLAY is set, create its own pygame window and listen for commands.
 def run_display(conn, x, y, w, h, name="display"):
+    # Defensive: ensure the child has the correct X display
     os.environ.setdefault("DISPLAY", ":0")
 
     pygame.init()
     pygame.display.init()
-    screen = pygame.display.set_mode(
-        (w, h),
-        pygame.NOFRAME | pygame.DOUBLEBUF | pygame.HWSURFACE
-    )
+    screen = pygame.display.set_mode((w, h), pygame.NOFRAME | pygame.DOUBLEBUF | pygame.HWSURFACE)
     pygame.display.set_caption(f"{name}")
 
-    # Move window
+    # Move the window to (x, y) using xdotool (requires xdotool installed)
     try:
-        wid = int(pygame.display.get_wm_info()["window"])
-        subprocess.run(
-            ["xdotool", "windowmove", str(wid), str(x), str(y)],
-            check=False
-        )
+        wid = pygame.display.get_wm_info().get("window")
+        # Some builds return bytes; make sure it's a str/int
+        wid = int(wid)
+        subprocess.run(["xdotool", "windowmove", str(wid), str(x), str(y)], check=False)
     except Exception as e:
         print(f"[{name}] failed to move window: {e}", file=sys.stderr)
 
@@ -48,35 +45,40 @@ def run_display(conn, x, y, w, h, name="display"):
 
     # Colors
     color_bg = (255, 255, 255)
+    color_highlight = (255, 255, 255)
     color_eye = (0, 0, 0)
 
     # Eye parameters
-    eye_size = (h, h)
-    eye_radius = min(eye_size) / 2 * 1.2
-    pupil_pos_x = eye_size[0] / 2 + 150
-    pupil_pos_y = eye_size[1] / 2
-
-    # ---- CACHE ASSETS ----
-    iris_path = os.path.join(BASE_DIR, "iris.png")
-    iris_img = pygame.image.load(iris_path).convert_alpha()
-
-    iris_size = int(eye_radius * 2)
-    iris_img = pygame.transform.smoothscale(iris_img, (iris_size, iris_size))
-    iris_rect = iris_img.get_rect(center=(pupil_pos_x, pupil_pos_y))
-    # ----------------------
+    eye_size=(h, h)
+    eye_radius = min(eye_size)/2 * 1.2
+    pupil_radius = eye_radius / 1.2
+    pupil_pos_x = eye_size[0]/2 + 150 # offset
+    pupil_pos_y = eye_size[1]/2
 
     # Blinking
     blinkTime = 0.2
     blinkLeft = -blinkTime
 
-    while running:
-        deltaTime = clock.tick(60) * 0.001
-        blinkLeft -= deltaTime
+    # Cache
+    iris_img = pygame.image.load(os.path.join(BASE_DIR,"iris.png")).convert_alpha()
+    iris_size = eye_radius * 2
+    iris_img = pygame.transform.smoothscale(iris_img, (iris_size, iris_size))
+    iris_rect = iris_img.get_rect(center=(pupil_pos_x, pupil_pos_y))
 
+    while running:
+        # Input
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LCTRL] or keys[pygame.K_RCTRL]:
+            if keys[pygame.K_c]:
+                running = False
+
+        # Logic
+        deltaTime = clock.tick(60) / 1000  # convert milliseconds to seconds
+        blinkLeft -= deltaTime
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-
+    
         # Commands
         if conn.poll():
             msg = conn.recv()
@@ -89,14 +91,20 @@ def run_display(conn, x, y, w, h, name="display"):
             elif isinstance(msg, tuple) and msg[0] == "rect":
                 color_eye = msg[1]
 
-        screen.fill(color_bg)
+
+        screen.fill(pygame.Color(color_bg))
+        # pygame.draw.circle(screen, color_eye, (pupil_pos_x, pupil_pos_y), eye_radius)  # sclera
+        # pygame.draw.circle(screen, color_highlight, (pupil_pos_x, pupil_pos_y), pupil_radius)      # pupil
+
+
         screen.blit(iris_img, iris_rect)
 
-        if blinkLeft > -blinkTime:
-            blink(screen, abs(blinkLeft) / blinkTime)
 
-        if name == "RIGHT":
-            flipped = pygame.transform.flip(screen, False, True)
+        if (blinkLeft > -blinkTime):
+            blink(screen, abs(blinkLeft)/blinkTime)
+
+        if (name == "RIGHT"):
+            flipped = pygame.transform.flip(screen, False, True)  # (flip_x, flip_y)
             screen.blit(flipped, (0, 0))
 
         pygame.display.update()
