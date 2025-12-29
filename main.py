@@ -101,7 +101,7 @@ def run_display(conn, x, y, w, h, name="display"):
             blink(screen, abs(blinkLeft)/blinkTime)
 
         if (name == "RIGHT"):
-            flipped = pygame.transform.flip(screen, True, True)  # (flip_x, flip_y)
+            flipped = pygame.transform.flip(screen, False, True)  # (flip_x, flip_y)
             screen.blit(flipped, (0, 0))
 
         pygame.display.update()
