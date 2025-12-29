@@ -50,7 +50,7 @@ def run_display(conn, x, y, w, h, name="display"):
 
     # Eye parameters
     eye_size=(h, h)
-    eye_radius = min(eye_size)/2 - 10
+    eye_radius = min(eye_size)/2 * 1.2
     pupil_radius = eye_radius / 1.2
     pupil_pos_x = eye_size[0]/2 + 100 # offset
     pupil_pos_y = eye_size[1]/2
